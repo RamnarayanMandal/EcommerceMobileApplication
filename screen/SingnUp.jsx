@@ -9,37 +9,51 @@ import {
   Alert,
 } from "react-native";
 import React, { useState } from "react";
-import { Link } from "@react-navigation/native";
-import * as SMS from 'expo-sms';
-import logo from "../assets/logo.webp"; // Ensure the logo path is correct
+import { Link, useNavigation } from "@react-navigation/native";
+import axios from "axios";
+import { API_URL } from "../contant";
 
-export default function SingnUp() {
+export default function SignUp() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigation()
 
   const handleSignUp = async () => {
-    // Perform validation checks
     if (!name || !email || !password) {
       Alert.alert("Error", "Please fill in all fields.");
       return;
     }
+    console.log("Validation Success", name, email, password);
 
-    // Here you can add your sign-up logic, such as API calls to create a new user
-    // For demonstration, we'll send an SMS and show a success alert
-    const isAvailable = await SMS.isAvailableAsync();
-    if (isAvailable) {
-      const { result } = await SMS.sendSMSAsync(
-        ['1234567890'], // Replace with a valid phone number
-        `Account created for ${name}.`
+    const user = {
+      name: name,
+      email: email,
+      password: password,
+    };
+
+    try {
+      const resp = await axios.post(`${API_URL}user/register`, user);
+      console.log(resp);
+
+      Alert.alert(
+        "Success",
+        "Account created successfully and check email verification."
       );
-      if (result === 'sent') {
-        Alert.alert("Success", `Account created for ${name}`);
+
+      setName("");
+      setEmail("");
+      setPassword("");
+      navigate.navigate('Login')
+    } catch (error) {
+      console.error(error);
+      if (error.response) {
+        Alert.alert("Error", error.response.data.message);
+      } else if (error.request) {
+        Alert.alert("Error", "Network Error: No response received.");
       } else {
-        Alert.alert("Cancelled", "SMS sending cancelled or failed");
+        Alert.alert("Error", "An unknown error occurred.");
       }
-    } else {
-      Alert.alert("Error", "SMS service is not available on this device");
     }
   };
 

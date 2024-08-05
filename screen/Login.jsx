@@ -8,14 +8,36 @@ import {
   TouchableOpacity,
   Alert,
 } from "react-native";
-import React, { useState } from "react";
-import { Link } from "@react-navigation/native";
+import React, { useEffect, useState } from "react";
+import { Link, useNavigation } from "@react-navigation/native";
 import * as SMS from 'expo-sms';
 import logo from "../assets/logo.webp"; // Ensure the logo path is correct
+import axios from "axios";
+import { API_URL } from "../contant";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const navigate = useNavigation()
+
+  useEffect( ()=>{
+   const checkuserLogin = async ()=>{
+    try {
+      const token = await AsyncStorage.getItem("token");
+      
+      if(token){
+        navigate.replace('HomeTabs')
+      }
+    } catch (error) {
+      console.log(error);
+    }
+   }
+   checkuserLogin()
+
+    }, [])
+
 
   const handleLogin = async () => {
     // Perform validation checks
@@ -24,28 +46,28 @@ const Login = () => {
       return;
     }
 
-    // Placeholder for actual login logic
-    const loginSuccessful = true; // Replace this with real login logic
-
-    if (loginSuccessful) {
-      // Sending success SMS
-      const isAvailable = await SMS.isAvailableAsync();
-      if (isAvailable) {
-        const { result } = await SMS.sendSMSAsync(
-          ['1234567890'], // Replace with a valid phone number
-          `Login successful for ${email}.`
-        );
-        if (result === 'sent') {
-          Alert.alert("Success", `Logged in as ${email}`);
-        } else {
-          Alert.alert("Warning", "Logged in but SMS sending failed or was cancelled.");
+    try {
+      const repo = await axios.post(`${API_URL}user/login`,
+        {
+           email, password ,
         }
-      } else {
-        Alert.alert("Warning", "Logged in but SMS service is not available on this device.");
-      }
-    } else {
-      Alert.alert("Error", "Login failed. Please check your credentials and try again.");
+      )
+      AsyncStorage.setItem("token",repo.data.accessToken)
+      
+      if (repo.status === 200) {
+        Alert.alert("Success", "Logged in successfully.");
+        
+      } 
+      navigate.navigate('HomeTabs')
+      
+    } catch (error) {
+      console.log(error);a
+      Alert.alert("Error", "Invalid email or password.");
+
+      
     }
+
+    
   };
 
   return (
